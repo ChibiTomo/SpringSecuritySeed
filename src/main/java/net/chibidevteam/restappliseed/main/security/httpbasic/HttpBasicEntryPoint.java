@@ -1,4 +1,4 @@
-package net.chibidevteam.restappliseed.auth.httpbasic;
+package net.chibidevteam.restappliseed.main.security.httpbasic;
 
 import java.io.IOException;
 import java.io.PrintWriter;

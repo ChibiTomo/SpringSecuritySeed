@@ -1,4 +1,4 @@
-package net.chibidevteam.restappliseed.config;
+package net.chibidevteam.restappliseed.main.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
@@ -8,9 +8,11 @@ import org.springframework.stereotype.Service;
 @PropertySource({ "classpath:/default-securityseed.properties", "classpath:/securityseed.properties" })
 public class SecurityConfig {
 
-    public static final String ANY_REQUEST_PATTERN  = "/**";
-    public static final String AUTH_TYPE_FORM       = "form";
-    public static final String AUTH_TYPE_HTTP_BASIC = "http_basic";
+    public static final String ANY_REQUEST_PATTERN          = "/**";
+    public static final String AUTH_TYPE_FORM               = "form";
+    public static final String AUTH_TYPE_HTTP_BASIC         = "http_basic";
+
+    public static final String REST_AUTH_DETAIL_SOURCE_NAME = "RESTAuthDetailSource";
 
     @Value("${net.chibidevteam.securityseed.authProviderName}")
     private String             authProviderName;
@@ -40,6 +42,11 @@ public class SecurityConfig {
     private String             usernameParam;
     @Value("${net.chibidevteam.securityseed.login.param.password}")
     private String             passwordParam;
+
+    @Value("${net.chibidevteam.securityseed.login.token.header}")
+    private String             tokenHeader;
+    @Value("${net.chibidevteam.securityseed.login.token.param}")
+    private String             tokenParam;
 
     @Value("${net.chibidevteam.securityseed.logout.url}")
     private String             logoutUrl;
@@ -131,5 +138,13 @@ public class SecurityConfig {
 
     public String getLogoutSuccessUrl() {
         return logoutSuccessUrl;
+    }
+
+    public String getTokenHeader() {
+        return tokenHeader;
+    }
+
+    public String getTokenParam() {
+        return tokenParam;
     }
 }

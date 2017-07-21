@@ -1,4 +1,4 @@
-package net.chibidevteam.restappliseed.config;
+package net.chibidevteam.restappliseed.main.config;
 
 import java.lang.reflect.Constructor;
 
@@ -12,8 +12,10 @@ import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationDetailsSource;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -23,28 +25,27 @@ import org.springframework.security.config.annotation.web.configurers.Expression
 import org.springframework.security.config.annotation.web.configurers.FormLoginConfigurer;
 import org.springframework.security.config.annotation.web.configurers.HttpBasicConfigurer;
 import org.springframework.security.config.annotation.web.configurers.LogoutConfigurer;
-import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-import net.chibidevteam.restappliseed.auth.rest.RESTAuthenticationSuccessHandler;
-import net.chibidevteam.restappliseed.auth.rest.RESTEntryPoint;
-import net.chibidevteam.restappliseed.auth.rest.RESTLogoutSuccessHandler;
-import net.chibidevteam.restappliseed.exception.NoAuthentificationProviderException;
+import net.chibidevteam.restappliseed.main.exception.NoAuthentificationProviderException;
+import net.chibidevteam.restappliseed.main.security.rest.RESTAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
 public class WebSecurityConfiguration extends WebSecurityConfigurerAdapter implements ApplicationContextAware {
 
-    private static final Log                 LOGGER = LogFactory.getLog(WebSecurityConfiguration.class);
+    private static final Log LOGGER = LogFactory.getLog(WebSecurityConfiguration.class);
 
     @Autowired
-    private SecurityConfig                   config;
+    private SecurityConfig   config;
 
-    @Autowired
-    private RESTEntryPoint                   restEntryPoint;
-    @Autowired
-    private RESTAuthenticationSuccessHandler restAuthSuccessHandler;
-    @Autowired
-    private RESTLogoutSuccessHandler         restLogoutSuccessHandler;
+    // @Autowired
+    // private RESTEntryPoint restEntryPoint;
+    // @Autowired
+    // private RESTAuthenticationFilter restAuthFilter;
+    // @Autowired
+    // private RESTAuthenticationSuccessHandler restAuthSuccessHandler;
 
     @Override
     protected void configure(AuthenticationManagerBuilder auth) throws Exception {
@@ -54,63 +55,104 @@ public class WebSecurityConfiguration extends WebSecurityConfigurerAdapter imple
     @Override
     protected void configure(HttpSecurity http) throws Exception {
 
-        ExpressionUrlAuthorizationConfigurer<HttpSecurity>.ExpressionInterceptUrlRegistry urlAuth = http
-                .authorizeRequests();
-
-        configureUrlAuthorizations(urlAuth);
-        if (!StringUtils.isEmpty(config.getAuthDetailSource())) {
-            urlAuth.and().httpBasic();
-        }
+        configureUrlAuthorizations(http.authorizeRequests());
 
         String authType = config.getAuthType();
-        if (SecurityConfig.AUTH_TYPE_FORM.equals(authType)) {
-            LOGGER.info("Configuring form authentication");
-            FormLoginConfigurer<HttpSecurity> form = urlAuth.and().formLogin();
-            configureFormAuthentification(form);
-            setAuthDetailSource(form);
-        } else if (SecurityConfig.AUTH_TYPE_HTTP_BASIC.equals(authType)) {
-            LOGGER.info("Configuring HTTP Basic authentication");
-            HttpBasicConfigurer<HttpSecurity> basic = urlAuth.and().httpBasic();
-            setAuthDetailSource(basic);
+        boolean useAuthByForm = SecurityConfig.AUTH_TYPE_FORM.equals(authType);
+        boolean useHttpBasic = SecurityConfig.AUTH_TYPE_HTTP_BASIC.equals(authType);
+        if (config.isREST()) {
+            configureREST(http);
+            if (useAuthByForm) {
+                configureRESTForm(http.authorizeRequests());
+            } else if (useHttpBasic) {
+                configureRESTHttpBasic(http.httpBasic());
+            } else {
+                LOGGER.warn("REST configured but no correct authentication method found: '" + authType + "'");
+            }
+            LOGGER.trace("No logout for REST service");
         } else {
-            LOGGER.warn("No authentication method configured");
+            if (useAuthByForm) {
+                configureForm(http.formLogin());
+                configureLogout(http.logout());
+            } else if (useHttpBasic) {
+                configureHttpBasic(http.httpBasic());
+                LOGGER.trace("No logout for HTTP Basic Auth");
+            } else {
+                LOGGER.warn("Security configured but no correct authentication method found: '" + authType + "'");
+            }
         }
 
-        configureLogout(urlAuth.and().logout());
-
+        LOGGER.info("Disabling CSRF: " + !config.useCSRF());
         if (!config.useCSRF()) {
             http.csrf().disable();
         }
     }
 
-    private void configureLogout(LogoutConfigurer<HttpSecurity> logout) {
-        logout.logoutUrl(config.getLogoutUrl());
-        logout.logoutUrl(config.getLogoutUrl());
-        if (config.isREST()) {
-            logout.logoutSuccessHandler(restLogoutSuccessHandler);
-        } else {
-            logout.logoutSuccessUrl(config.getLogoutSuccessUrl());
-        }
+    @Bean
+    @Override
+    public AuthenticationManager authenticationManagerBean() throws Exception {
+        return super.authenticationManagerBean();
     }
 
-    private void configureFormAuthentification(FormLoginConfigurer<HttpSecurity> form) throws Exception {
-        form.usernameParameter(config.getUsernameParam()) // default is username
-                .passwordParameter(config.getPasswordParam()) // default is password
-                .loginProcessingUrl(config.getLoginProcess()) // default is /login
+    @Bean
+    public RESTAuthenticationFilter authenticationTokenFilterBean() throws Exception {
+        RESTAuthenticationFilter authenticationTokenFilter = new RESTAuthenticationFilter();
+        authenticationTokenFilter.setAuthenticationManager(authenticationManagerBean());
+        return authenticationTokenFilter;
+    }
+
+    private void configureREST(HttpSecurity http) throws Exception {
+        LOGGER.info("Base configuration for REST service");
+        http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS) //
+                .and().addFilterBefore(authenticationTokenFilterBean(), UsernamePasswordAuthenticationFilter.class);
+    }
+
+    private void configureRESTForm(
+            ExpressionUrlAuthorizationConfigurer<HttpSecurity>.ExpressionInterceptUrlRegistry urlAuth) {
+        LOGGER.info("Configuring form authentication for REST service");
+        LOGGER.info("PermitAll on: " + config.getLoginProcess() + "/**");
+        urlAuth.antMatchers(config.getLoginProcess() + "/**").permitAll();
+        // setAuthDetailSource(formLogin);
+        //
+        // commonConfigureForm(formLogin);
+        // formLogin.successHandler(restAuthSuccessHandler) // Suppress redirection on success
+        // .failureHandler(new SimpleUrlAuthenticationFailureHandler()) // Suppress redirection on failure
+        // .and().exceptionHandling().authenticationEntryPoint(restEntryPoint);
+    }
+
+    private void configureRESTHttpBasic(HttpBasicConfigurer<HttpSecurity> httpBasic) {
+        LOGGER.info("Configuring HTTP Basic authentication for REST service");
+        setAuthDetailSource(httpBasic);
+    }
+
+    private void configureForm(FormLoginConfigurer<HttpSecurity> formLogin) {
+        LOGGER.info("Configuring form authentication");
+        setAuthDetailSource(formLogin);
+
+        commonConfigureForm(formLogin);
+        formLogin.loginPage(config.getLoginPage()).permitAll() // default is /login with an HTTP get
+                .failureUrl(config.getLoginError()).permitAll() // default is /login?error
                 .defaultSuccessUrl(config.getDefaultLoginSuccess());
+    }
 
-        if (config.isREST()) {
-            LOGGER.info("Configuring for a REST service");
+    private void configureHttpBasic(HttpBasicConfigurer<HttpSecurity> httpBasic) {
+        LOGGER.info("Configuring HTTP Basic authentication");
+        setAuthDetailSource(httpBasic);
+    }
 
-            form.successHandler(restAuthSuccessHandler) // Suppress redirection on success
-                    .failureHandler(new SimpleUrlAuthenticationFailureHandler()) // Suppress redirection on success
-                    .and().exceptionHandling().authenticationEntryPoint(restEntryPoint); //
-        } else {
-            form.loginPage(config.getLoginPage()).permitAll() // default is /login with an HTTP get
-                    .failureUrl(config.getLoginError()).permitAll() // default is /login?error
-                    .defaultSuccessUrl(config.getDefaultLoginSuccess());
+    private void commonConfigureForm(FormLoginConfigurer<HttpSecurity> formLogin) {
+        formLogin.usernameParameter(config.getUsernameParam()) // default is username
+                .passwordParameter(config.getPasswordParam()) // default is password
+                .loginProcessingUrl(config.getLoginProcess());
+    }
+
+    private void configureLogout(LogoutConfigurer<HttpSecurity> logout) {
+        LOGGER.trace("Configuring logout");
+
+        logout.logoutUrl(config.getLogoutUrl());
+        if (!StringUtils.isEmpty(config.getLogoutSuccessUrl())) {
+            logout.logoutSuccessUrl(config.getLogoutSuccessUrl());
         }
-
     }
 
     private AuthenticationProvider getAuthProvider() throws NoAuthentificationProviderException {
@@ -129,11 +171,15 @@ public class WebSecurityConfiguration extends WebSecurityConfigurerAdapter imple
     }
 
     private void setAuthDetailSource(FormLoginConfigurer<HttpSecurity> form) {
-        form.authenticationDetailsSource(getAuthDetailSource());
+        if (!StringUtils.isEmpty(config.getAuthDetailSource())) {
+            form.authenticationDetailsSource(getAuthDetailSource());
+        }
     }
 
     private void setAuthDetailSource(HttpBasicConfigurer<HttpSecurity> basic) {
-        basic.authenticationDetailsSource(getAuthDetailSource());
+        if (!StringUtils.isEmpty(config.getAuthDetailSource())) {
+            basic.authenticationDetailsSource(getAuthDetailSource());
+        }
     }
 
     @SuppressWarnings("unchecked")

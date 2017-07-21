@@ -1,4 +1,4 @@
-package net.chibidevteam.restappliseed.exception;
+package net.chibidevteam.restappliseed.main.exception;
 
 public class NoAuthentificationProviderException extends Exception {
 

@@ -1,4 +1,4 @@
-package net.chibidevteam.restappliseed.auth.rest;
+package net.chibidevteam.restappliseed.main.security.rest;
 
 import java.io.IOException;
 

@@ -1,4 +1,4 @@
-package net.chibidevteam.restappliseed.auth.rest;
+package net.chibidevteam.restappliseed.main.security.httpbasic;
 
 import java.io.IOException;
 
@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 @Component
-public class RESTAuthenticationSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
+public class HttpBasicAuthenticationSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
     private RequestCache requestCache = new HttpSessionRequestCache();
 
