@@ -11,6 +11,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.test.web.servlet.MockMvc;
@@ -53,45 +54,47 @@ public abstract class AbstractControllerTest {
         return config;
     }
 
-    protected void expectGet(String path, int status, String body) throws Exception {
-        expectGet(path, null, status, body);
+    protected MockHttpServletResponse expectGet(String path, int status, String body) throws Exception {
+        return expectGet(path, null, status, body);
     }
 
-    protected void expectGet(String path, HttpHeaders headers, int status, String body) throws Exception {
-        expectGet(path, headers, null, status, body);
-    }
-
-    protected void expectGet(String path, MultiValueMap<String, String> params, int status, String body)
+    protected MockHttpServletResponse expectGet(String path, HttpHeaders headers, int status, String body)
             throws Exception {
-        expectGet(path, null, params, status, body);
+        return expectGet(path, headers, null, status, body);
     }
 
-    protected void expectGet(String path, HttpHeaders headers, MultiValueMap<String, String> params, int status,
+    protected MockHttpServletResponse expectGet(String path, MultiValueMap<String, String> params, int status,
             String body) throws Exception {
+        return expectGet(path, null, params, status, body);
+    }
+
+    protected MockHttpServletResponse expectGet(String path, HttpHeaders headers, MultiValueMap<String, String> params,
+            int status, String body) throws Exception {
         logger.info("Performing GET on '" + path + "'");
-        expect(get(path), headers, null, status, body);
+        return expect(get(path), headers, null, status, body);
     }
 
-    protected void expectPost(String path, int status, String body) throws Exception {
-        expectPost(path, null, null, status, body);
+    protected MockHttpServletResponse expectPost(String path, int status, String body) throws Exception {
+        return expectPost(path, null, null, status, body);
     }
 
-    protected void expectPost(String path, MultiValueMap<String, String> params, int status, String body)
-            throws Exception {
-        expectPost(path, null, params, status, body);
-    }
-
-    protected void expectPost(String path, HttpHeaders headers, int status, String body) throws Exception {
-        expectPost(path, headers, null, status, body);
-    }
-
-    protected void expectPost(String path, HttpHeaders headers, MultiValueMap<String, String> params, int status,
+    protected MockHttpServletResponse expectPost(String path, MultiValueMap<String, String> params, int status,
             String body) throws Exception {
-        logger.info("Performing POST on '" + path + "'");
-        expect(post(path), headers, params, status, body);
+        return expectPost(path, null, params, status, body);
     }
 
-    private void expect(MockHttpServletRequestBuilder rqBuilder, HttpHeaders headers,
+    protected MockHttpServletResponse expectPost(String path, HttpHeaders headers, int status, String body)
+            throws Exception {
+        return expectPost(path, headers, null, status, body);
+    }
+
+    protected MockHttpServletResponse expectPost(String path, HttpHeaders headers, MultiValueMap<String, String> params,
+            int status, String body) throws Exception {
+        logger.info("Performing POST on '" + path + "'");
+        return expect(post(path), headers, params, status, body);
+    }
+
+    private MockHttpServletResponse expect(MockHttpServletRequestBuilder rqBuilder, HttpHeaders headers,
             MultiValueMap<String, String> params, int status, String body) throws Exception {
         if (headers != null && !headers.isEmpty()) {
             logger.info("Headers are: " + headers);
@@ -104,10 +107,16 @@ public abstract class AbstractControllerTest {
         ResultActions resultActions = mockMvc.perform(rqBuilder);
         MvcResult result = resultActions.andReturn();
 
-        logger.info("Expected status: " + status + ", Actual status: " + result.getResponse().getStatus());
-        logger.info("Expected body: '" + body + "', Actual body: '" + result.getResponse().getContentAsString() + "'");
-        resultActions.andExpect(status().is(status));
-        Assert.assertEquals(body, result.getResponse().getContentAsString());
+        MockHttpServletResponse response = result.getResponse();
+        if (status != -1) {
+            logger.info("Expected status: " + status + ", Actual status: " + response.getStatus());
+            resultActions.andExpect(status().is(status));
+        }
+        if (body != null) {
+            logger.info("Expected body: '" + body + "', Actual body: '" + response.getContentAsString() + "'");
+            Assert.assertEquals(body, response.getContentAsString());
+        }
+        return response;
     }
 
 }

@@ -9,7 +9,6 @@ import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationDetailsSource;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -30,8 +29,6 @@ import net.chibidevteam.securityseed.security.stateless.StatelessSuccessAuthenti
 
 @Configuration
 @EnableWebSecurity
-@ComponentScan({ "net.chibidevteam.securityseed.main.config", "net.chibidevteam.securityseed.main.controller",
-        "net.chibidevteam.securityseed.main.service" })
 public class WebSecurityConfigAdapter extends WebSecurityConfigurerAdapter implements ApplicationContextAware {
 
     private static final Log                                   LOGGER = LogFactory
