@@ -70,6 +70,7 @@ public class TokenHeaderTest extends AbstractControllerTest {
 
         expectGet(PUBLIC_BASE_PATH + SUB_PATH, HttpStatus.OK.value(), PUBLIC_RESPONSE);
         expectPost(SECURED_BASE_PATH + SUB_PATH, headers, HttpStatus.OK.value(), SECURED_RESPONSE);
+        expectGet(SECURED_BASE_PATH + SUB_PATH, HttpStatus.FORBIDDEN.value(), "");
     }
 
     @Test

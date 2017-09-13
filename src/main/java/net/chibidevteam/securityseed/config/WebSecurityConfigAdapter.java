@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
@@ -163,36 +164,76 @@ public class WebSecurityConfigAdapter extends WebSecurityConfigurerAdapter imple
             ExpressionUrlAuthorizationConfigurer<HttpSecurity>.ExpressionInterceptUrlRegistry urlAuth) {
         if (!ArrayUtils.isEmpty(config.getPermitAll())) {
             LOGGER.info("PermitAll: " + StringUtils.join(config.getPermitAll(), ", "));
-            getAuthorizedUrl(urlAuth, config.getPermitAll()).permitAll();
+            setPermission(Permission.PERMIT_ALL, urlAuth, config.getPermitAll());
         }
         if (!ArrayUtils.isEmpty(config.getAnonymous())) {
             LOGGER.info("Anonymous: " + StringUtils.join(config.getAnonymous(), ", "));
-            getAuthorizedUrl(urlAuth, config.getAnonymous()).anonymous();
+            setPermission(Permission.ANONYMOUS, urlAuth, config.getAnonymous());
         }
         if (!ArrayUtils.isEmpty(config.getRememberMe())) {
             LOGGER.info("RememberMe: " + StringUtils.join(config.getRememberMe(), ", "));
-            getAuthorizedUrl(urlAuth, config.getRememberMe()).rememberMe();
+            setPermission(Permission.REMEMBER_ME, urlAuth, config.getRememberMe());
         }
         if (!ArrayUtils.isEmpty(config.getAuthenticated())) {
             LOGGER.info("Authenticated: " + StringUtils.join(config.getAuthenticated(), ", "));
-            getAuthorizedUrl(urlAuth, config.getAuthenticated()).authenticated();
+            setPermission(Permission.AUTHENTICATED, urlAuth, config.getAuthenticated());
         }
         if (!ArrayUtils.isEmpty(config.getFullyAuthenticated())) {
             LOGGER.info("FullyAuthenticated: " + StringUtils.join(config.getFullyAuthenticated(), ", "));
-            getAuthorizedUrl(urlAuth, config.getFullyAuthenticated()).fullyAuthenticated();
+            setPermission(Permission.FULLY_AUTHENTICATED, urlAuth, config.getFullyAuthenticated());
         }
         if (!ArrayUtils.isEmpty(config.getDenyAll())) {
             LOGGER.info("DenyAll: " + StringUtils.join(config.getDenyAll(), ", "));
-            getAuthorizedUrl(urlAuth, config.getDenyAll()).denyAll();
+            setPermission(Permission.DENY_ALL, urlAuth, config.getDenyAll());
         }
     }
 
-    private ExpressionUrlAuthorizationConfigurer<HttpSecurity>.AuthorizedUrl getAuthorizedUrl(
-            ExpressionUrlAuthorizationConfigurer<HttpSecurity>.ExpressionInterceptUrlRegistry urlAuth,
-            String[] patterns) {
-        if (ArrayUtils.contains(patterns, SecurityConfig.ANY_REQUEST_PATTERN)) {
-            return urlAuth.anyRequest();
+    private void setPermission(Permission perm,
+            ExpressionUrlAuthorizationConfigurer<HttpSecurity>.ExpressionInterceptUrlRegistry urlAuth, String[] urls) {
+        String sep = config.getUrlMethodSeparator();
+
+        HttpMethod method = null;
+        String url = null;
+        boolean hasMethod;
+        for (String given : urls) {
+            String[] parts = given.split(sep, 2);
+            method = getMethod(parts[0]);
+            hasMethod = method != null;
+            if (parts.length == 2) {
+                url = hasMethod ? parts[1] : given;
+            } else {
+                url = hasMethod ? null : given;
+            }
+
+            applyPermission(perm, method, url, urlAuth);
         }
-        return urlAuth.antMatchers(patterns);
+    }
+
+    private void applyPermission(Permission perm, HttpMethod method, String url,
+            ExpressionUrlAuthorizationConfigurer<HttpSecurity>.ExpressionInterceptUrlRegistry urlAuth) {
+        if (Permission.PERMIT_ALL.equals(perm)) {
+            urlAuth.antMatchers(method, url).permitAll();
+        } else if (Permission.ANONYMOUS.equals(perm)) {
+            urlAuth.antMatchers(method, url).anonymous();
+        } else if (Permission.REMEMBER_ME.equals(perm)) {
+            urlAuth.antMatchers(method, url).rememberMe();
+        } else if (Permission.AUTHENTICATED.equals(perm)) {
+            urlAuth.antMatchers(method, url).authenticated();
+        } else if (Permission.FULLY_AUTHENTICATED.equals(perm)) {
+            urlAuth.antMatchers(method, url).fullyAuthenticated();
+        } else if (Permission.DENY_ALL.equals(perm)) {
+            urlAuth.antMatchers(method, url).denyAll();
+        }
+    }
+
+    private HttpMethod getMethod(String string) {
+        if (string == null) {
+            return null;
+        }
+        return HttpMethod.resolve(string.toUpperCase());
+    }
+
+    private enum Permission {
+        PERMIT_ALL, ANONYMOUS, REMEMBER_ME, AUTHENTICATED, FULLY_AUTHENTICATED, DENY_ALL
     }
 }

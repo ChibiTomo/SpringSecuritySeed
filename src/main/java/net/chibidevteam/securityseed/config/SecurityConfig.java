@@ -5,7 +5,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
-import org.springframework.security.core.userdetails.UserDetails;
 
 @Configuration
 @PropertySource(value = { "classpath:/default-securityseed.properties",
@@ -72,6 +71,9 @@ public class SecurityConfig {
     private String             authType;
     @Value("${net.chibidevteam.securityseed.anonymous.allow}")
     private boolean            allowAnonymous;
+
+    @Value("${net.chibidevteam.securityseed.urlMethodSeparator}")
+    private String             urlMethodSeparator;
 
     @Bean
     public static PropertySourcesPlaceholderConfigurer properties() {
@@ -170,8 +172,7 @@ public class SecurityConfig {
         return basicRealm;
     }
 
-    public Class<? extends UserDetails> getUserDetailsClass() {
-        // TODO Auto-generated method stub
-        return null;
+    public String getUrlMethodSeparator() {
+        return urlMethodSeparator;
     }
 }

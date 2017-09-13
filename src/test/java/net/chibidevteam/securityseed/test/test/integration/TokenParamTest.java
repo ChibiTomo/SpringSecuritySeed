@@ -72,6 +72,7 @@ public class TokenParamTest extends AbstractControllerTest {
         expectPost(PUBLIC_BASE_PATH + SUB_PATH, params, HttpStatus.OK.value(), PUBLIC_AUTHENTICATED_RESPONSE);
         expectGet(PUBLIC_BASE_PATH + SUB_PATH, HttpStatus.OK.value(), PUBLIC_RESPONSE);
         expectPost(SECURED_BASE_PATH + SUB_PATH, params, HttpStatus.OK.value(), SECURED_RESPONSE);
+        expectGet(SECURED_BASE_PATH + SUB_PATH, HttpStatus.FORBIDDEN.value(), "");
     }
 
     @Test
