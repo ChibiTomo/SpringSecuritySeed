@@ -1,4 +1,4 @@
-package net.chibidevteam.securityseed.controller;
+package net.chibidevteam.securityseed.test.stateless;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -10,8 +10,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import net.chibidevteam.securityseed.dto.UserAuthentication;
-import net.chibidevteam.securityseed.model.AuthenticationResponse;
 import net.chibidevteam.securityseed.service.TokenAuthenticationService;
+import net.chibidevteam.securityseed.test.custom.model.AuthenticationResponse;
 
 @RestController
 @RequestMapping("${net.chibidevteam.securityseed.login.process}")
@@ -19,6 +19,10 @@ public class SecurityController {
 
     @Autowired
     private TokenAuthenticationService tokenManagerService;
+
+    public SecurityController(TokenAuthenticationService tokenManagerService) {
+        this.tokenManagerService = tokenManagerService;
+    }
 
     @RequestMapping(produces = "application/json; charset=UTF-8")
     public ResponseEntity<AuthenticationResponse> successJSON(HttpServletResponse response,

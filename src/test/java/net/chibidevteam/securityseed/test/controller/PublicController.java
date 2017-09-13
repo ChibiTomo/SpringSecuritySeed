@@ -1,10 +1,10 @@
-package net.chibidevteam.securityseed.controller;
+package net.chibidevteam.securityseed.test.controller;
 
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import net.chibidevteam.securityseed.testconfig.TokenParamConfig;
+import net.chibidevteam.securityseed.test.config.TokenParamConfig;
 import net.chibidevteam.securityseed.util.SecurityHelper;
 
 @RestController

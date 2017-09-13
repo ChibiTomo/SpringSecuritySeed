@@ -10,18 +10,18 @@ import javax.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import net.chibidevteam.securityseed.config.SecurityConfig;
 import net.chibidevteam.securityseed.dto.UserAuthentication;
-import net.chibidevteam.securityseed.security.authentication.AuthUserDetails;
-import net.chibidevteam.securityseed.security.authentication.IUserDetailsService;
 import net.chibidevteam.securityseed.service.TokenAuthenticationService;
 
 public class StatelessSuccessAuthenticationFilter extends UsernamePasswordAuthenticationFilter {
 
     @Autowired
-    private IUserDetailsService        userDetailsService;
+    private UserDetailsService         userDetailsService;
     @Autowired
     private TokenAuthenticationService tokenManagerService;
     @Autowired
@@ -30,9 +30,8 @@ public class StatelessSuccessAuthenticationFilter extends UsernamePasswordAuthen
     @Override
     protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, FilterChain chain,
             Authentication authentication) throws IOException, ServletException {
-
-        final AuthUserDetails authenticatedUser = userDetailsService.loadUserByUsername(authentication.getName());
-        final UserAuthentication userAuthentication = new UserAuthentication(authenticatedUser);
+        final UserDetails details = userDetailsService.loadUserByUsername(authentication.getName());
+        final UserAuthentication userAuthentication = new UserAuthentication(details);
 
         // Add the authentication to the Security context
         SecurityContextHolder.getContext().setAuthentication(userAuthentication);

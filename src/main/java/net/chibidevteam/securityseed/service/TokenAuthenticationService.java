@@ -10,11 +10,12 @@ import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import net.chibidevteam.securityseed.config.SecurityConfig;
 import net.chibidevteam.securityseed.dto.UserAuthentication;
-import net.chibidevteam.securityseed.security.authentication.AuthUserDetails;
+import net.chibidevteam.securityseed.security.authentication.ExpirableUserDetails;
 import net.chibidevteam.securityseed.util.TokenHandler;
 
 @Service
@@ -32,8 +33,8 @@ public class TokenAuthenticationService {
         tokenHandler = new TokenHandler(DatatypeConverter.parseBase64Binary(config.getSecret()), config.getTokenAlgo());
     }
 
-    public String createToken(UserAuthentication authentication) {
-        final AuthUserDetails user = (AuthUserDetails) authentication.getDetails();
+    public String createToken(Authentication authentication) {
+        final ExpirableUserDetails user = (ExpirableUserDetails) authentication.getDetails();
         user.setExpires(System.currentTimeMillis() + config.getTokenExpiration());
         return tokenHandler.createTokenForUser(user);
     }
@@ -54,7 +55,9 @@ public class TokenAuthenticationService {
 
     private Authentication getAuthenticationFromToken(String token) {
         if (token != null) {
-            final AuthUserDetails user = tokenHandler.parseUserFromToken(token);
+            // We will possibly lose some informations. It returns an ExpirableUserInfo
+            // Think about adding some factory from ExpirableUserInfo
+            UserDetails user = tokenHandler.parseUserFromToken(token);
             if (user != null) {
                 return new UserAuthentication(user);
             }

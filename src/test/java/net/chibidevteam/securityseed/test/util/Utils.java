@@ -1,4 +1,4 @@
-package net.chibidevteam.securityseed.util;
+package net.chibidevteam.securityseed.test.util;
 
 public class Utils {
 

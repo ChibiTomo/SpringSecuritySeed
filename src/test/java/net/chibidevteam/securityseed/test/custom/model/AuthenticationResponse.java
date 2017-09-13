@@ -1,4 +1,4 @@
-package net.chibidevteam.securityseed.model;
+package net.chibidevteam.securityseed.test.custom.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;

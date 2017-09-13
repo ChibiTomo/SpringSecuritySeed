@@ -5,6 +5,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
+import org.springframework.security.core.userdetails.UserDetails;
 
 @Configuration
 @PropertySource(value = { "classpath:/default-securityseed.properties",
@@ -38,10 +39,14 @@ public class SecurityConfig {
     private String             loginProcess;
     @Value("${net.chibidevteam.securityseed.login.defaultSuccess}")
     private String             defaultLoginSuccess;
+
     @Value("${net.chibidevteam.securityseed.login.param.username}")
     private String             usernameParam;
     @Value("${net.chibidevteam.securityseed.login.param.password}")
     private String             passwordParam;
+
+    @Value("${net.chibidevteam.securityseed.login.basic.realm}")
+    private String             basicRealm;
 
     @Value("${net.chibidevteam.securityseed.login.token.header}")
     private String             tokenHeader;
@@ -67,10 +72,6 @@ public class SecurityConfig {
     private String             authType;
     @Value("${net.chibidevteam.securityseed.anonymous.allow}")
     private boolean            allowAnonymous;
-    @Value("${net.chibidevteam.securityseed.anonymous.user}")
-    private String             anonymousUsername;
-    @Value("${net.chibidevteam.securityseed.anonymous.role}")
-    private String             anonymousRole;
 
     @Bean
     public static PropertySourcesPlaceholderConfigurer properties() {
@@ -165,11 +166,12 @@ public class SecurityConfig {
         return allowAnonymous;
     }
 
-    public String getAnonymousUsername() {
-        return anonymousUsername;
+    public String getBasicRealm() {
+        return basicRealm;
     }
 
-    public String getAnonymousRole() {
-        return anonymousRole;
+    public Class<? extends UserDetails> getUserDetailsClass() {
+        // TODO Auto-generated method stub
+        return null;
     }
 }

@@ -5,7 +5,6 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Base64;
-import java.util.Date;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -14,10 +13,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.json.JSONObject;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import net.chibidevteam.securityseed.security.authentication.AuthUserDetails;
+import net.chibidevteam.securityseed.security.authentication.ExpirableUserDetails;
 
 public class TokenHandler {
 
@@ -37,8 +37,8 @@ public class TokenHandler {
 
     }
 
-    public String createTokenForUser(AuthUserDetails user) {
-        byte[] userBytes = toJSON(user);
+    public String createTokenForUser(UserDetails userDetails) {
+        byte[] userBytes = toJSON(userDetails);
         byte[] hash = createHmac(userBytes);
         final StringBuilder sb = new StringBuilder(170);
         sb.append(toBase64(userBytes));
@@ -47,7 +47,7 @@ public class TokenHandler {
         return sb.toString();
     }
 
-    public AuthUserDetails parseUserFromToken(String token) {
+    public UserDetails parseUserFromToken(String token) {
         final String[] parts = token.split(SPLIT_SEPARATOR);
         if (parts.length != 2 || StringUtils.isEmpty(parts[0]) || StringUtils.isEmpty(parts[1])) {
             return null;
@@ -58,8 +58,8 @@ public class TokenHandler {
 
             boolean validHash = Arrays.equals(createHmac(userBytes), hash);
             if (validHash) {
-                final AuthUserDetails user = fromJSON(userBytes);
-                if (user != null && new Date().getTime() < user.getExpires()) {
+                final UserDetails user = fromJSON(userBytes);
+                if (user != null) {// && new Date().getTime() < user.getExpires()) {
                     return user;
                 }
             }
@@ -77,15 +77,15 @@ public class TokenHandler {
         return Base64.getDecoder().decode(str);
     }
 
-    private byte[] toJSON(AuthUserDetails user) {
-        JSONObject obj = new JSONObject(user);
+    private byte[] toJSON(UserDetails userDetails) {
+        JSONObject obj = new JSONObject(new ExpirableUserDetails(userDetails));
         return obj.toString().getBytes();
     }
 
-    private AuthUserDetails fromJSON(byte[] bytes) {
+    private UserDetails fromJSON(byte[] bytes) {
         ObjectMapper mapper = new ObjectMapper();
         try {
-            return mapper.readValue(bytes, AuthUserDetails.class);
+            return mapper.readValue(bytes, ExpirableUserDetails.class);
         } catch (IOException e) {
             LOGGER.warn("Cannot read from JSON '" + new String(bytes) + "'", e);
             return null;
